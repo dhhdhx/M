@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>نايفTV - أفلام بدون تسجيل</title>
+<style>
+  body {
+    font-family: 'Tajawal', sans-serif;
+    background-color: #1e1e1e;
+    color: white;
+    margin: 0; padding: 0 10px;
+  }
+  header {
+    background-color: #111;
+    padding: 15px 0;
+    text-align: center;
+    font-size: 26px;
+    font-weight: bold;
+    color: #ff2e63;
+    margin-bottom: 10px;
+  }
+  #addMovieSection {
+    background: #222;
+    padding: 15px;
+    border-radius: 10px;
+    max-width: 600px;
+    margin: 10px auto;
+  }
+  #addMovieSection input, #addMovieSection button {
+    width: 100%;
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 6px;
+    border: none;
+    font-size: 16px;
+  }
+  #addMovieSection button {
+    background-color: #ff2e63;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  #moviesList {
+    max-width: 900px;
+    margin: 20px auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+    gap: 15px;
+  }
+  .movieCard {
+    background: #111;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+  .movieCard:hover {
+    transform: scale(1.05);
+  }
+  .movieCover {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+  }
+  .movieName {
+    text-align: center;
+    padding: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    background: #222;
+  }
+  #videoModal {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  #videoModal video {
+    max-width: 90vw;
+    max-height: 80vh;
+    border-radius: 10px;
+  }
+  #videoModalClose {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  #uploadProgress {
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>نايفTV - أفلام بدون تسجيل دخول</header>
+
+<section id="addMovieSection">
+  <h3>أضف فيلم جديد</h3>
+  <input type="text" id="movieName" placeholder="اسم الفيلم" />
+  <input type="file" id="movieCoverFile" accept="image/*" />
+  <input type="file" id="movieVideoFile" accept="video/*" />
+  <button id="uploadBtn">رفع الفيلم</button>
+  <div id="uploadProgress"></div>
+</section>
+
+<section id="moviesList"></section>
+
+<!-- مودال عرض الفيديو -->
+<div id="videoModal">
+  <span id="videoModalClose">&times;</span>
+  <video id="videoPlayer" controls></video>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+
+<script>
+  // تهيئة Firebase - استبدل بالقيم الخاصة بمشروعك
+  const firebaseConfig = {
+    apiKey: "AIzaSyBIlchId5siYF0Yuv9VkTGwMiTp_YPs0UM",
+    authDomain: "pppplllgggf.firebaseapp.com",
+    projectId: "pppplllgggf",
+    storageBucket: "pppplllgggf.appspot.com",
+    messagingSenderId: "135512263839",
+    appId: "1:135512263839:web:7b671cda2ca2dd5c5766aa"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  // عناصر الصفحة
+  const movieNameInput = document.getElementById('movieName');
+  const movieCoverFile = document.getElementById('movieCoverFile');
+  const movieVideoFile = document.getElementById('movieVideoFile');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const uploadProgress = document.getElementById('uploadProgress');
+  const moviesList = document.getElementById('moviesList');
+
+  const videoModal = document.getElementById('videoModal');
+  const videoPlayer = document.getElementById('videoPlayer');
+  const videoModalClose = document.getElementById('videoModalClose');
+
+  // رفع الفيلم
+  uploadBtn.addEventListener('click', async () => {
+    const name = movieNameInput.value.trim();
+    const cover = movieCoverFile.files[0];
+    const video = movieVideoFile.files[0];
+
+    if (!name || !cover || !video) {
+      alert('يرجى ملء جميع الحقول واختيار الملفات');
+      return;
+    }
+
+    uploadProgress.textContent = 'جارِ رفع الملفات...';
+
+    try {
+      // رفع صورة الغلاف
+      const coverRef = storage.ref().child('covers/' + Date.now() + '_' + cover.name);
+      const coverSnapshot = await coverRef.put(cover);
+      const coverURL = await coverSnapshot.ref.getDownloadURL();
+
+      // رفع الفيديو
+      const videoRef = storage.ref().child('videos/' + Date.now() + '_' + video.name);
+      const videoSnapshot = await videoRef.put(video);
+      const videoURL = await videoSnapshot.ref.getDownloadURL();
+
+      // حفظ بيانات الفيلم في Firestore
+      await db.collection('movies').add({
+        name,
+        cover: coverURL,
+        video: videoURL,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      uploadProgress.textContent = 'تم رفع الفيلم بنجاح!';
+      movieNameInput.value = '';
+      movieCoverFile.value = '';
+      movieVideoFile.value = '';
+
+      loadMovies();
+
+    } catch (error) {
+      uploadProgress.textContent = 'حدث خطأ أثناء الرفع: ' + error.message;
+    }
+  });
+
+  // تحميل وعرض الأفلام
+  async function loadMovies() {
+    moviesList.innerHTML = 'جارِ تحميل الأفلام...';
+    try {
+      const snapshot = await db.collection('movies').orderBy('timestamp', 'desc').get();
+      if (snapshot.empty) {
+        moviesList.innerHTML = 'لا توجد أفلام حالياً.';
+        return;
+      }
+      moviesList.innerHTML = '';
+      snapshot.forEach(doc => {
+        const movie = doc.data();
+        const card = document.createElement('div');
+        card.className = 'movieCard';
+
+        card.innerHTML = `
+          <img class="movieCover" src="${movie.cover}" alt="${movie.name}" />
+          <div class="movieName">${movie.name}</div>
+        `;
+        card.onclick = () => {
+          openVideoModal(movie.video);
+        };
+        moviesList.appendChild(card);
+      });
+    } catch (error) {
+      moviesList.innerHTML = 'خطأ في تحميل الأفلام: ' + error.message;
+    }
+  }
+
+  // فتح مودال الفيديو وتشغيله
+  function openVideoModal(videoUrl) {
+    videoPlayer.src = videoUrl;
+    videoModal.style.display = 'flex';
+    videoPlayer.play();
+  }
+  // إغلاق مودال الفيديو
+  videoModalClose.onclick = () => {
+    videoModal.style.display = 'none';
+    videoPlayer.pause();
+    videoPlayer.src = '';
+  };
+  // إغلاق المودال عند الضغط خارج الفيديو
+  videoModal.onclick = (e) => {
+    if(e.target === videoModal) {
+      videoModalClose.onclick();
+    }
+  };
+
+  // تحميل الأفلام عند بداية الصفحة
+  loadMovies();
+
+</script>
+
+</body>
+</html>

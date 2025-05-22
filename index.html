@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>تسجيل الدخول / إنشاء حساب</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: 'Tajawal', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+    input, button {
+      margin: 10px;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      width: 250px;
+    }
+    button {
+      background: #ff2e63;
+      color: white;
+      cursor: pointer;
+    }
+    .toggle-btn {
+      background: none;
+      color: #ccc;
+      text-decoration: underline;
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2 id="form-title">تسجيل الدخول</h2>
+
+  <div id="form">
+    <input type="email" id="email" placeholder="البريد الإلكتروني">
+    <input type="password" id="password" placeholder="كلمة المرور">
+    <button onclick="handleAuth()">دخول</button>
+  </div>
+
+  <p id="toggle-text">ما عندك حساب؟</p>
+  <button class="toggle-btn" onclick="toggleMode()">تسجيل جديد</button>
+  <p id="error" style="color: red;"></p>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIlchId5siYF0Yuv9VkTGwMiTp_YPs0UM",
+      authDomain: "pppplllgggf.firebaseapp.com",
+      projectId: "pppplllgggf",
+      storageBucket: "pppplllgggf.appspot.com",
+      messagingSenderId: "135512263839",
+      appId: "1:135512263839:web:YOUR_WEB_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    let isLogin = true;
+
+    function toggleMode() {
+      isLogin = !isLogin;
+      document.getElementById("form-title").innerText = isLogin ? "تسجيل الدخول" : "تسجيل جديد";
+      document.querySelector("button").innerText = isLogin ? "دخول" : "تسجيل";
+      document.getElementById("toggle-text").innerText = isLogin ? "ما عندك حساب؟" : "عندك حساب؟";
+      document.querySelector(".toggle-btn").innerText = isLogin ? "تسجيل جديد" : "دخول الآن";
+      document.getElementById("error").innerText = "";
+    }
+
+    function handleAuth() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const errorDiv = document.getElementById("error");
+
+      if (isLogin) {
+        firebase.auth().signInWithEmailAndPassword(email, password)
+          .then(() => window.location.href = "upload.html")
+          .catch(e => errorDiv.innerText = e.message);
+      } else {
+        firebase.auth().createUserWithEmailAndPassword(email, password)
+          .then(() => window.location.href = "k.html")
+          .catch(e => errorDiv.innerText = e.message);
+      }
+    }
+  </script>
+
+</body>
+</html>
